@@ -1,0 +1,3 @@
+# Simulación Plataforma Técnica SaaS
+# Python 3.8+
+# No se requieren dependencias externas; solo biblioteca estándar.
