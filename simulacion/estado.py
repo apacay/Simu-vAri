@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 Estado global de la simulación. Contadores de clientes, financieros y métricas.
+Incluye modelo de técnicos con TPLL, TPS[], HIGH_VALUE.
 """
 
 from dataclasses import dataclass
-from typing import Optional, List
+from typing import Optional, List, Dict, Any, Tuple
+
+from . import config as cfg
 
 
 @dataclass
@@ -65,10 +68,37 @@ class EstadoSimulacion:
         self.scoring_IA_semana_anterior = 77
         self.ajuste_prob_calendarizacion = 0.0
 
+        # --- Modelo de técnicos (TPLL, TPS[], HIGH_VALUE) ---
+        self.TPLL = 0.0                      # Tiempo Próxima Llegada (minutos desde inicio)
+        self.reloj_minutos = 0                # Reloj en minutos acumulados
+        self.Tecnicos_Dev = 2                 # Cantidad inicial de devs
+        self.Tecnicos_AppsIT = 5              # Cantidad inicial de técnicos Apps/IT
+        self.TPS_Dev: List[float] = []        # TPS[i] por cada Dev; HIGH_VALUE = libre
+        self.TPS_AppsIT: List[float] = []    # TPS[i] por cada técnico Apps/IT
+        self._inicializar_tps()
+        self.trabajos_perdidos_por_tipo: Dict[str, int] = {
+            "APPS": 0, "IT": 0, "DESARROLLO": 0
+        }
+        self.contrataciones_pendientes: List[Tuple[int, int, int]] = []  # (dia, n_devs, n_apps_it)
+
         # --- Métricas ---
         self.T_EQUILIBRIO: Optional[int] = None
         self.MEJOR_TRIMESTRE = MejorTrimestre()
         self.beneficio_acumulado_por_dia: List[float] = []
+        self.metricas_semanales: List[Dict[str, Any]] = []
+        # Pérdidas de clientes por semana (se reinicia cada semana)
+        self.perdidas_semana: Dict[str, int] = {
+            "suscripcion_no_renovacion": 0,
+            "prepago_no_renovacion": 0,
+            "prepago_abandono_insatisfecho": 0,  # Abandono inmediato (minutos sin consumir)
+            "trabajo_aislado_insatisfecho": 0,
+            "calendarizacion_sin_tecnico": 0,  # Por falta de disponibilidad
+        }
+
+    def _inicializar_tps(self) -> None:
+        """Inicializa TPS[] con HIGH_VALUE (todos libres)."""
+        self.TPS_Dev = [cfg.HIGH_VALUE] * self.Tecnicos_Dev
+        self.TPS_AppsIT = [cfg.HIGH_VALUE] * self.Tecnicos_AppsIT
 
     def scoring_IA_actual(self) -> float:
         """Scoring para intervalo de arribos: (Asiduos_Suscripcion + Asiduos_Prepago)*2 + PE_con_paquetes - (Asiduos_Suscripcion + Asiduos_Prepago)."""

@@ -1,0 +1,9 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Generados en ejecución
+debug.log
+graficos/
+graficos_benchmark/
