@@ -153,6 +153,26 @@ La simulación usa conceptos de simulación por eventos discretos para modelar l
 - Cada semana se aplica `PROB_ROTACION_TECNICO_SEMANAL` por técnico.
 - Binomial(n, p) determina las bajas de Devs y técnicos Apps/IT por separado.
 
+## Glosario de acrónimos
+
+| Acrónimo | Significado | Descripción |
+|----------|-------------|-------------|
+| **SaaS** | Software as a Service | Modelo de entrega de software en la nube. |
+| **PE** | Preexistente | Cliente ya registrado en la plataforma (no nuevo). |
+| **CE** | Cost-Effective | Cliente recurrente que usa suscripción o prepago. |
+| **TA** | Trabajo Aislado | Cliente esporádico que paga por trabajo individual. |
+| **MKT** | Marketing | Presupuesto mensual para adquisición de clientes nuevos. |
+| **TPLL** | Tiempo Próxima Llegada | Minuto estimado de la próxima llegada de cliente. |
+| **TPS** | Tiempo Próxima Salida | Vector con el minuto en que cada técnico se libera. |
+| **HIGH_VALUE** | Valor infinito | Indicador de técnico libre (`TPS[i] = inf`). |
+| **TD** | Trabajos Diarios | Total de llegadas esperadas en el día. |
+| **TDN** | Trabajos Diarios Normales | Llegadas en horario laboral (días de semana). |
+| **TDOFF** | Trabajos Diarios Off | Llegadas fuera de horario laboral o fines de semana. |
+| **EaE** | Evento a Evento | Procesamiento de llegadas secuenciales (horario laboral). |
+| **IT** | Information Technology | Tipo de trabajo técnico de infraestructura. |
+| **Dev** | Developer | Técnico especializado en desarrollo de software. |
+| **Apps/IT** | Aplicaciones / IT | Técnico generalista para trabajos de apps e IT. |
+
 ## Demanda y distribuciones
 
 - **Demanda de trabajos:** Distribución binomial negativa (mayor variabilidad que Poisson).
