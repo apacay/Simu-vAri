@@ -45,12 +45,18 @@ def _determinar_trabajo() -> Tuple[str, float, float]:
     """Devuelve (tipo_trabajo, duracion, costo_por_unidad). Duración en minutos salvo Desarrollo en horas."""
     r = random.random()
     if r < cfg.PROB_APPS:
-        duracion = cfg.normal_truncada(cfg.DURACION_APPS_MEDIA, cfg.DURACION_APPS_STD, 0)
+        duracion = cfg.normal_truncada(
+            cfg.DURACION_APPS_MEDIA, cfg.DURACION_APPS_STD,
+            0, cfg.DURACION_APPS_MAX_MINUTOS
+        )
         return TRABAJO_APPS, duracion, cfg.COSTO_APPS_POR_MIN
     if r < cfg.PROB_APPS + cfg.PROB_IT:
-        duracion = cfg.normal_truncada(cfg.DURACION_IT_MEDIA, cfg.DURACION_IT_STD, 0)
+        duracion = cfg.normal_truncada(
+            cfg.DURACION_IT_MEDIA, cfg.DURACION_IT_STD,
+            0, cfg.DURACION_IT_MAX_MINUTOS
+        )
         return TRABAJO_IT, duracion, cfg.COSTO_IT_POR_MIN
-    duracion_h = cfg.uniforme(cfg.DESARROLLO_HORAS_MIN, cfg.DESARROLLO_HORAS_MAX)
+    duracion_h = cfg.duracion_desarrollo_horas()
     return TRABAJO_DESARROLLO, duracion_h, cfg.COSTO_DESARROLLO_POR_HORA
 
 

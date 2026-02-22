@@ -47,12 +47,17 @@ PROB_PREEXISTENTE_MAX = 0.70
 INCREMENTO_PROB_PE_POR_30 = 0.01
 INCREMENTO_PROB_PE_MAX = 0.50
 
+# --- Límites explícitos de distribuciones (sin infinito) ---
+INTER_ARRIBO_MAX_MINUTOS = 120   # Máx 2h entre llegadas (horas valle)
+DURACION_APPS_MAX_MINUTOS = 120  # ~2h máximo trabajo APPS
+DURACION_IT_MAX_MINUTOS = 120    # ~2h máximo trabajo IT
+
 # --- Tipo de trabajo: probabilidades y distribuciones ---
 PROB_APPS = 0.52
 PROB_IT = 0.43   # 0.52 + 0.43 = 0.95, resto desarrollo
-# Apps: Normal(15, 35) minutos, 1.0 crédito/min
-# IT: Normal(5, 40) minutos, 1.25 créditos/min
-# Desarrollo: Uniforme(2, 20) horas, 30 créditos/hora
+# Apps: Normal(15, 35) min truncada [0, 120], 1.0 crédito/min
+# IT: Normal(5, 40) min truncada [0, 120], 1.25 créditos/min
+# Desarrollo: Binomial negativa rango [2, 20] horas, 30 créditos/hora
 DURACION_APPS_MEDIA = 15
 DURACION_APPS_STD = 35
 DURACION_IT_MEDIA = 5
@@ -108,6 +113,10 @@ FACTOR_APPS_IT_POR_TRABAJO_APPS_IT_PERDIDO = 0.12  # ~1 técnico cada 8 trabajos
 TRABAJOS_BINOMIAL_NEG_R = 5.0    # Parámetro r (dispersion)
 TRABAJOS_BINOMIAL_NEG_P = 0.20   # Parámetro p (ajustar para media deseada)
 
+# --- Binomial negativa: duración Desarrollo (reemplaza Uniforme) ---
+DESARROLLO_BINOMIAL_NEG_R = 5.0   # r
+DESARROLLO_BINOMIAL_NEG_P = 0.35  # p → media ≈ 9, duración media ≈ 11h
+
 # --- EaE: inter-arribos y pesos horarios ---
 # Pesos bimodal: picos 10-12 y 14-16 (horas 2-3 y 5-6 en 0-indexed)
 PESOS_HORARIOS = (0.10, 0.14, 0.16, 0.12, 0.10, 0.14, 0.14, 0.10)
@@ -115,15 +124,19 @@ MINUTOS_POR_HORA = 60
 HORAS_LABORALES = 8
 
 
-def generar_inter_arribo(lambda_per_minuto: float) -> float:
+def generar_inter_arribo(lambda_per_minuto: float, max_minutos: float = None) -> float:
     """
     Muestra de Exponencial(1/lambda). Tiempo hasta la próxima llegada en minutos.
     lambda_per_minuto: llegadas por minuto (tasa).
+    max_minutos: límite superior; si no se indica, usa INTER_ARRIBO_MAX_MINUTOS.
     """
     import random
+    if max_minutos is None:
+        max_minutos = INTER_ARRIBO_MAX_MINUTOS
     if lambda_per_minuto <= 0:
-        return float("inf")
-    return -math.log(1.0 - random.random()) / lambda_per_minuto
+        return max_minutos
+    x = -math.log(1.0 - random.random()) / lambda_per_minuto
+    return min(x, max_minutos)
 
 
 def lambda_por_minuto_en_hora(tdn: int, hora: int) -> float:
@@ -139,19 +152,21 @@ def lambda_por_minuto_en_hora(tdn: int, hora: int) -> float:
     return llegadas_esperadas_hora / MINUTOS_POR_HORA
 
 
-def normal_truncada(media: float, std: float, min_val: float = 0, max_val: float = None) -> float:
-    """Muestra de distribución normal (truncada si se indica)."""
+def normal_truncada(media: float, std: float, min_val: float, max_val: float) -> float:
+    """Muestra de distribución normal truncada en [min_val, max_val]."""
     import random
     x = random.gauss(media, std)
-    if max_val is None:
-        max_val = float("inf")
     return max(min_val, min(max_val, x))
 
 
-def uniforme(a: float, b: float) -> float:
-    """Muestra de distribución uniforme en [a, b]."""
-    import random
-    return a + (b - a) * random.random()
+def duracion_desarrollo_horas() -> float:
+    """
+    Duración de trabajo Desarrollo en horas [DESARROLLO_HORAS_MIN, DESARROLLO_HORAS_MAX].
+    Usa binomial negativa en lugar de uniforme (más realista).
+    """
+    span = DESARROLLO_HORAS_MAX - DESARROLLO_HORAS_MIN
+    x = binomial_negativa(DESARROLLO_BINOMIAL_NEG_R, DESARROLLO_BINOMIAL_NEG_P, max_val=int(span))
+    return DESARROLLO_HORAS_MIN + min(x, span)
 
 
 def binomial(n: int, p: float) -> int:
@@ -192,12 +207,15 @@ def poisson(lam: float) -> int:
             return k - 1
 
 
-def binomial_negativa(r: float, p: float) -> int:
+def binomial_negativa(r: float, p: float, max_val: int = None) -> int:
     """
     Muestra de distribución binomial negativa (número de fracasos antes de r éxitos).
     media = r*(1-p)/p. Para conteos con sobredispersión.
+    max_val: límite superior; si no se indica, usa TRABAJOS_DIARIOS_MAX_ABS.
     """
     import random
+    if max_val is None:
+        max_val = TRABAJOS_DIARIOS_MAX_ABS
     r_int = max(1, int(r))
     exitos = 0
     fracasos = 0
@@ -206,4 +224,6 @@ def binomial_negativa(r: float, p: float) -> int:
             exitos += 1
         else:
             fracasos += 1
-    return fracasos
+            if fracasos >= max_val:
+                return max_val
+    return min(fracasos, max_val)
