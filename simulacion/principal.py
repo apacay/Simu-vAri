@@ -104,7 +104,11 @@ def ejecutar_ciclo_contratacion(est: EstadoSimulacion) -> None:
 
 
 def aplicar_rotacion_tecnicos(est: EstadoSimulacion) -> None:
-    """Cada semana: aplicar probabilidad de baja por técnico."""
+    """
+    Cada semana: aplicar probabilidad de baja por técnico (rotación).
+    Tecnicos_Dev y Tecnicos_AppsIT pueden disminuir (mín. 1 cada tipo).
+    Complementa incorporar_contrataciones para un flujo completo de técnicos.
+    """
     if (est.T % cfg.DIAS_POR_SEMANA) != 0:
         return
     bajas_dev = cfg.binomial(est.Tecnicos_Dev, cfg.PROB_ROTACION_TECNICO_SEMANAL)
@@ -116,9 +120,12 @@ def aplicar_rotacion_tecnicos(est: EstadoSimulacion) -> None:
 
 
 def cobrar_suscripciones(est: EstadoSimulacion) -> None:
-    """Cobro mensual de suscripciones y bajas por no renovación (Binomial)."""
+    """Cobro mensual de suscripciones y bajas por no renovación (Beta, alineado con prepago)."""
     if est.Disconformes_Suscripcion > 0:
-        no_renovaciones = cfg.binomial(est.Disconformes_Suscripcion, cfg.PROB_NO_RENOVACION_DISCONFORME)
+        no_renovaciones = sum(
+            1 for _ in range(est.Disconformes_Suscripcion)
+            if random.random() < cfg.prob_efectiva_beta(cfg.PROB_NO_RENOVACION_DISCONFORME, 8)
+        )
         no_renovaciones = min(no_renovaciones, est.Suscripciones_Totales)
         est.perdidas_semana["suscripcion_no_renovacion"] += no_renovaciones
         est.Suscripciones_Totales -= no_renovaciones
@@ -276,6 +283,12 @@ def ejecutar_simulacion(T_FINAL: int, N: int, M: float, verbose: bool = True) ->
     """
     est = EstadoSimulacion(T_FINAL=T_FINAL, N=N, M=M)
     while est.T < est.T_FINAL:
+        # --- Esquema de eventos (obs. Prof. Mammana) ---
+        # (a) Llegada: TDN/TDOFF en bucle más abajo
+        # (b) Corte mensual: cobrar_suscripciones, reponer_creditos_mkt
+        # (c) Corte semanal: calcular_ajuste_calendarizacion, aplicar_rotacion_tecnicos, metricas_semanales
+        # (d) Implementación + inestabilidad: verificar_implementacion
+        # (e) Agotamiento prepago: llegada._renovar_bloque_prepago cuando creditos_prepago_global<=0
         est.T += 1
         reiniciar_tps_dia(est)
         incorporar_contrataciones(est)

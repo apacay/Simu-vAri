@@ -87,17 +87,13 @@ def generar_graficos(est: "EstadoSimulacion", output_dir: str = "graficos") -> N
     fig.savefig(os.path.join(output_dir, "beneficios.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
-    # 5. Gráfico de costos
+    # 5. Gráfico de costos (COSTOS_TECNICOS y COSTOS_RESARCIMIENTO no implementados, excluidos)
     fig, ax = plt.subplots(figsize=(10, 6))
     desarrollo = [m["costos"]["desarrollo"] for m in est.metricas_semanales]
     marketing = [m["costos"]["marketing"] for m in est.metricas_semanales]
-    tecnicos = [m["costos"]["tecnicos"] for m in est.metricas_semanales]
-    resarcimiento = [m["costos"]["resarcimiento"] for m in est.metricas_semanales]
 
     ax.plot(semanas, desarrollo, marker="o", markersize=4, label="Desarrollo")
     ax.plot(semanas, marketing, marker="s", markersize=4, label="Marketing")
-    ax.plot(semanas, tecnicos, marker="^", markersize=4, label="Técnicos")
-    ax.plot(semanas, resarcimiento, marker="D", markersize=4, label="Resarcimiento")
 
     ax.set_xlabel("Semana")
     ax.set_ylabel("Costo (créditos)")

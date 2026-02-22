@@ -53,6 +53,8 @@ python run_simulacion.py --dias 365 --marketing 4500 -q
 
 ## Benchmark (múltiples corridas)
 
+El benchmark ejecuta N corridas con la simulación completa (siempre el horizonte máximo configurado). Luego extrae métricas por corrida y las agrega (media, desviación estándar, percentiles). Los promedios y estadísticas provienen de esta agregación a partir de la simulación máxima.
+
 Para ejecutar un número configurable de corridas y obtener métricas agregadas (media, desv. estándar, distribuciones):
 
 ```bash
@@ -104,6 +106,70 @@ print(agregado["estadisticas"]["beneficio_final"]["media"])
 # Generar gráficos
 generar_graficos_benchmark(agregado, output_dir="graficos_benchmark")
 ```
+
+## Datos, variables de estado y variables de resultado
+
+### Criterios de clasificación
+
+- **Datos (exógenos)**: Variables y funciones entregadas al principio de la simulación. No son variables de estado porque no evolucionan durante la corrida; definen el escenario y las reglas.
+- **Variables de estado**: Cantidad mínima que evoluciona durante la simulación y describe cómo está el sistema en un punto dado. Con ellas se podría reanudar o reproducir el sistema en ese instante.
+- **Variables de resultado**: Cantidad muy pequeña que constituye el objetivo de la simulación: qué se extrae como meta. Generalmente no coinciden con las de estado.
+- **Resto**: Acumuladores y auxiliares necesarios para el cálculo pero no destacables para documentación.
+
+### Datos (exógenos) — NO son variables de estado
+
+| Categoría | Ejemplos |
+|-----------|----------|
+| **Parámetros de corrida** | T_FINAL, N (frecuencia implementaciones), M (presupuesto MKT mensual) |
+| **Constantes y parámetros** | Todo lo definido en config.py: probabilidades (PROB_*), costos (COSTO_*, PRECIO_*), duraciones, factores, etc. |
+| **Funciones de probabilidad** | prob_efectiva_beta, binomial, poisson, binomial_negativa, normal_truncada, generar_inter_arribo, etc. |
+| **Estado inicial** | Valores con que arrancan las variables de estado (PE_Trabajo_Aislado=940, Tecnicos_Dev=2, etc.) |
+
+### Variables de estado (15)
+
+Mínimo que evoluciona durante la simulación y permite entender el sistema en un punto dado:
+
+| Variable | Rol |
+|----------|-----|
+| T | Tiempo simulado (día actual). Reloj de la simulación. |
+| PE_Trabajo_Aislado | Clientes esporádicos sin paquete. |
+| Asiduos_Suscripcion, Asiduos_Prepago | Clientes recurrentes por tipo de pago. |
+| CE_Suscripcion, CE_Prepago | Clientes CE no asiduos por tipo de pago. |
+| Disconformes_Asiduos, Disconformes_CE, Disconformes_Prepago, Disconformes_Suscripcion | Clientes insatisfechos por segmento; determinan renovaciones. |
+| Tecnicos_Dev, Tecnicos_AppsIT | Capacidad de atención. |
+| creditos_prepago_global | Créditos restantes del bloque prepago compartido. |
+| ULTIMO_DIA_IMPLEMENTACION, DIAS_INESTABILIDAD_RESTANTES | Estado del ciclo de implementaciones. |
+| CREDITOS_MKT_GASTADOS_MES | Presupuesto MKT consumido en el mes (afecta llegada de nuevos). |
+| scoring_IA_semana_anterior, ajuste_prob_calendarizacion | Ajuste semanal de probabilidad de calendarización. |
+| contrataciones_pendientes | Cola de técnicos por incorporar. |
+
+### Variables de resultado (5)
+
+Objetivos de la simulación:
+
+| Variable | Rol |
+|----------|-----|
+| beneficio_neto_acumulado (calculado) | Objetivo principal: beneficio total al final de la simulación. |
+| beneficio_mensual_promedio (calculado) | Beneficio neto promedio por mes simulado. |
+| beneficio_anualizado (calculado) | Proyección de beneficio a un año si se mantuviera el ritmo. |
+| T_EQUILIBRIO | Día en que el beneficio acumulado supera cero por primera vez. |
+| MEJOR_TRIMESTRE | Ventana de 120 días con mayor beneficio acumulado. |
+
+### Relación eventos → variables de estado
+
+| Evento | Variables de estado que modifica |
+|--------|----------------------------------|
+| Llegada de cliente | PE_Trabajo_Aislado, Asiduos_*, CE_*, Disconformes_*, creditos_prepago_global, Suscripciones_Totales, Prepagos_Totales, PE_con_paquetes |
+| Incorporación técnicos | Tecnicos_Dev, Tecnicos_AppsIT, contrataciones_pendientes |
+| Ciclo contratación | contrataciones_pendientes, trabajos_perdidos_por_tipo |
+| Rotación técnicos | Tecnicos_Dev, Tecnicos_AppsIT |
+| Implementación | ULTIMO_DIA_IMPLEMENTACION, DIAS_INESTABILIDAD_RESTANTES |
+| Ajuste calendarización | ajuste_prob_calendarizacion, scoring_IA_semana_anterior |
+| Corte mensual (cobro suscripciones) | Suscripciones_Totales, Asiduos_Suscripcion, CE_Suscripcion, Disconformes_*, PE_con_paquetes |
+| Corte mensual (reposición MKT) | CREDITOS_MKT_GASTADOS_MES |
+| Agotamiento bloque prepago | creditos_prepago_global, Prepagos_Totales, Asiduos_Prepago, CE_Prepago, Disconformes_*, PE_con_paquetes |
+
+El resto (CREDITOS_ENTRANTES, BENEFICIO_NETO_*, COSTO_MKT, TPS_*, metricas_semanales, etc.) son acumuladores o auxiliares necesarios pero no destacables para esta documentación.
 
 ## Resumen del modelo
 

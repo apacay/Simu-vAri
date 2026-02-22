@@ -95,6 +95,16 @@ PROB_ABANDONO_PREPAGO_DISCONFORME = 0.60  # 60%
 PROB_CONVERSION_TA_A_PAQUETE = 0.05
 PROB_ASIDUO_TRAS_CONVERSION = 0.30
 
+# --- Cliente no cobrado (trabajo insatisfactorio) ---
+PROB_CONFORME_SI_NO_COBRA_NO_PREPAGO = 0.50   # Suscripción/TA: queda conforme si no se cobra
+PROB_RECUPERACION_POR_NO_COBRAR_PREPAGO = 0.50  # Prepago disconforme: no cobrar lo recupera
+PROB_TIPO_PAGO_SUSCRIPCION_CLIENTE_NUEVO_CE = 0.50  # A/B test: nuevo CE elige suscripción vs prepago
+
+# --- Concentraciones Beta por evento (mayor = menos dispersión) ---
+CONCENTRACION_BETA_CONFORME_SI_NO_COBRA = 6   # Reacción humana impredecible
+CONCENTRACION_BETA_RECUPERACION_PREPAGO = 7   # Gesto recuperación; algo más consistente
+CONCENTRACION_BETA_TIPO_PAGO_NUEVO_CE = 10    # A/B test 50/50
+
 # --- Implementaciones ---
 PORCENTAJE_DIAS_INESTABILIDAD = 0.15
 

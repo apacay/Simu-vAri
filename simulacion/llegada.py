@@ -334,7 +334,7 @@ def procesar_llegada_cliente(
         else:
             if not se_cobra_cliente:
                 if tipo_pago != TIPO_PAGO_PREPAGO:
-                    if random.random() < cfg.prob_efectiva_beta(0.50, 8):
+                    if random.random() < cfg.prob_efectiva_beta(cfg.PROB_CONFORME_SI_NO_COBRA_NO_PREPAGO, cfg.CONCENTRACION_BETA_CONFORME_SI_NO_COBRA):
                         pass  # Queda conforme
                     else:
                         if tipo_cliente == TIPO_CLIENTE_CE:
@@ -378,7 +378,7 @@ def procesar_llegada_cliente(
                             return  # Cliente abandona, fin del flujo
                         else:
                             # No abandona: no cobrar puede recuperarlo (queda satisfecho por el gesto)
-                            if random.random() < cfg.prob_efectiva_beta(0.50, 8):
+                            if random.random() < cfg.prob_efectiva_beta(cfg.PROB_RECUPERACION_POR_NO_COBRAR_PREPAGO, cfg.CONCENTRACION_BETA_RECUPERACION_PREPAGO):
                                 if es_asiduo:
                                     est.Disconformes_Asiduos = max(0, est.Disconformes_Asiduos - 1)
                                 else:
@@ -460,7 +460,7 @@ def _procesar_cobro(
 
     if es_nuevo:
         if tipo_cliente == TIPO_CLIENTE_CE:
-            if random.random() < cfg.prob_efectiva_beta(0.50, 8):
+            if random.random() < cfg.prob_efectiva_beta(cfg.PROB_TIPO_PAGO_SUSCRIPCION_CLIENTE_NUEVO_CE, cfg.CONCENTRACION_BETA_TIPO_PAGO_NUEVO_CE):
                 tipo_pago = TIPO_PAGO_SUSCRIPCION
                 est.CREDITOS_ENTRANTES += cfg.PRECIO_SUSCRIPCION_MENSUAL
                 est.BENEFICIO_NETO_SUSCRIPCION += cfg.PRECIO_SUSCRIPCION_MENSUAL

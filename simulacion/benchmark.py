@@ -30,6 +30,8 @@ def _beneficio_acumulado(est: "EstadoSimulacion") -> float:
 class MetricasResumen:
     """Métricas extraídas de una sola ejecución."""
     beneficio_final: float
+    beneficio_mensual_promedio: float
+    beneficio_anualizado: float
     equilibrio_dia: Optional[int]
     mejor_trimestre_beneficio: float
     suscripciones_final: int
@@ -42,8 +44,14 @@ class MetricasResumen:
 
 def extraer_metricas(est: "EstadoSimulacion") -> MetricasResumen:
     """Extrae métricas de resumen de un EstadoSimulacion final."""
+    beneficio_final = _beneficio_acumulado(est)
+    meses_sim = max(1, est.T_FINAL / cfg.DIAS_POR_MES)
+    beneficio_mensual_promedio = beneficio_final / meses_sim
+    beneficio_anualizado = beneficio_final * (365 / est.T_FINAL) if est.T_FINAL > 0 else 0.0
     return MetricasResumen(
-        beneficio_final=_beneficio_acumulado(est),
+        beneficio_final=beneficio_final,
+        beneficio_mensual_promedio=beneficio_mensual_promedio,
+        beneficio_anualizado=beneficio_anualizado,
         equilibrio_dia=est.T_EQUILIBRIO,
         mejor_trimestre_beneficio=est.MEJOR_TRIMESTRE.beneficio if est.MEJOR_TRIMESTRE.beneficio > float("-inf") else None,
         suscripciones_final=est.Suscripciones_Totales,
@@ -109,6 +117,8 @@ def agregar_metricas(resultados: List["EstadoSimulacion"]) -> Dict[str, Any]:
 
     # Valores numéricos para estadísticas
     beneficios = [m.beneficio_final for m in metricas_runs]
+    beneficios_mensuales = [m.beneficio_mensual_promedio for m in metricas_runs]
+    beneficios_anualizados = [m.beneficio_anualizado for m in metricas_runs]
     equilibrios = [m.equilibrio_dia for m in metricas_runs if m.equilibrio_dia is not None]
     mejores_trim = [m.mejor_trimestre_beneficio for m in metricas_runs if m.mejor_trimestre_beneficio is not None]
     suscripciones = [m.suscripciones_final for m in metricas_runs]
@@ -138,6 +148,8 @@ def agregar_metricas(resultados: List["EstadoSimulacion"]) -> Dict[str, Any]:
         "metricas_por_run": metricas_runs,
         "estadisticas": {
             "beneficio_final": _estadisticas(beneficios),
+            "beneficio_mensual_promedio": _estadisticas(beneficios_mensuales),
+            "beneficio_anualizado": _estadisticas(beneficios_anualizados),
             "equilibrio_dia": _estadisticas([float(x) for x in equilibrios]) if equilibrios else {},
             "equilibrio_porcentaje": len(equilibrios) / len(resultados) * 100,
             "mejor_trimestre_beneficio": _estadisticas(mejores_trim) if mejores_trim else {},
