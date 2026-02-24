@@ -284,12 +284,14 @@ def calcular_mejor_trimestre(est: EstadoSimulacion) -> None:
         est.MEJOR_TRIMESTRE = MejorTrimestre(inicio=inicio, fin=T, beneficio=beneficio_trimestre)
 
 
-def ejecutar_simulacion(T_FINAL: int, N: int, M: float, verbose: bool = True) -> EstadoSimulacion:
+def ejecutar_simulacion(T_FINAL: int, N: int, M: float, prob_suscripcion_nuevo: float = 0.50, verbose: bool = True) -> EstadoSimulacion:
     """
     Ejecuta la simulación hasta el día T_FINAL.
     N: frecuencia de implementaciones (días).
     M: presupuesto mensual de marketing (500-4500).
+    prob_suscripcion_nuevo: probabilidad de que cliente nuevo elija suscripción vs prepago (0.0-1.0).
     """
+    cfg.PROB_TIPO_PAGO_SUSCRIPCION_CLIENTE_NUEVO_CE = prob_suscripcion_nuevo
     est = EstadoSimulacion(T_FINAL=T_FINAL, N=N, M=M)
     while est.T < est.T_FINAL:
         # --- Esquema de eventos (obs. Prof. Mammana) ---

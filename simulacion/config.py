@@ -102,7 +102,7 @@ PROB_ASIDUO_TRAS_CONVERSION = 0.30
 # --- Cliente no cobrado (trabajo insatisfactorio) ---
 PROB_CONFORME_SI_NO_COBRA_NO_PREPAGO = 0.50   # Suscripción/TA: queda conforme si no se cobra
 PROB_RECUPERACION_POR_NO_COBRAR_PREPAGO = 0.50  # Prepago disconforme: no cobrar lo recupera
-PROB_TIPO_PAGO_SUSCRIPCION_CLIENTE_NUEVO_CE = 0.50  # A/B test: nuevo CE elige suscripción vs prepago
+PROB_TIPO_PAGO_SUSCRIPCION_CLIENTE_NUEVO_CE = 0.50  # A/B test: nuevo CE elige suscripción vs prepago (modificable vía CLI --ab-suscripcion)
 
 # --- Concentraciones Beta por evento (mayor = menos dispersión) ---
 CONCENTRACION_BETA_CONFORME_SI_NO_COBRA = 6   # Reacción humana impredecible

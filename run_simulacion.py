@@ -4,12 +4,13 @@ Punto de entrada para ejecutar la simulación de la Plataforma Técnica SaaS.
 
 Uso:
   python run_simulacion.py [T_FINAL] [N] [M]
-  python run_simulacion.py --dias 3653 --implementaciones 30 --marketing 2000
+  python run_simulacion.py --dias 3653 --implementaciones 30 --marketing 2000 --ab-suscripcion 0.50
 
 Parámetros:
   T_FINAL : Días a simular (default 3653).
   N       : Frecuencia de implementaciones en días (default 30).
   M       : Presupuesto mensual de marketing, 500-4500 (default 2000).
+  AB      : Probabilidad suscripción para cliente nuevo, 0.0-1.0 (default 0.50).
 """
 
 import argparse
@@ -42,6 +43,12 @@ def main():
         help="Presupuesto mensual de marketing (500-4500 créditos)",
     )
     parser.add_argument(
+        "--ab-suscripcion",
+        type=float,
+        default=0.50,
+        help="Probabilidad de que cliente nuevo elija suscripción vs prepago (0.0-1.0, default: 0.50)",
+    )
+    parser.add_argument(
         "--silencioso", "-q",
         action="store_true",
         help="No imprimir resultados al final",
@@ -62,10 +69,11 @@ def main():
     T_FINAL = max(1, args.dias)
     N = max(1, args.implementaciones)
     M = max(500, min(4500, args.marketing))
+    AB_SUSCRIPCION = max(0.0, min(1.0, args.ab_suscripcion))
 
     from simulacion.principal import ejecutar_simulacion
 
-    estado = ejecutar_simulacion(T_FINAL=T_FINAL, N=N, M=M, verbose=not args.silencioso)
+    estado = ejecutar_simulacion(T_FINAL=T_FINAL, N=N, M=M, prob_suscripcion_nuevo=AB_SUSCRIPCION, verbose=not args.silencioso)
 
     if args.graficos:
         from simulacion.graficos import generar_graficos

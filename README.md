@@ -31,15 +31,15 @@ Ariel/
 ## Cómo ejecutar
 
 ```bash
-python run_simulacion.py --dias 365 --implementaciones 30 --marketing 2000
+python run_simulacion.py --dias 365 --implementaciones 30 --marketing 2000 --ab-suscripcion 0.50
 ```
 
-Parámetros principales: `--dias` (-T), `--implementaciones` (-N), `--marketing` (-M). Ver [Uso · Parámetros](https://github.com/apacay/Simu-vAri/wiki/Uso#par%C3%A1metros) para la tabla completa.
+Parámetros principales: `--dias` (-T), `--implementaciones` (-N), `--marketing` (-M), `--ab-suscripcion`. Ver [Uso · Parámetros](https://github.com/apacay/Simu-vAri/wiki/Uso#par%C3%A1metros) para la tabla completa.
 
 ## Benchmark (múltiples corridas)
 
 ```bash
-python run_benchmark.py --runs 20 --graficos
+python run_benchmark.py --runs 20 --ab-suscripcion 0.70 --graficos
 ```
 
 Ejecuta N corridas, agrega métricas y genera gráficos. Ver [Uso · Benchmark](https://github.com/apacay/Simu-vAri/wiki/Uso#benchmark-m%C3%BAtiples-corridas) para parámetros (`--runs`, `--output-metricas`, etc.).
@@ -48,7 +48,7 @@ Ejecuta N corridas, agrega métricas y genera gráficos. Ver [Uso · Benchmark](
 
 ```python
 from simulacion.principal import ejecutar_simulacion
-estado = ejecutar_simulacion(T_FINAL=365, N=30, M=2000, verbose=True)
+estado = ejecutar_simulacion(T_FINAL=365, N=30, M=2000, prob_suscripcion_nuevo=0.50, verbose=True)
 print(estado.BENEFICIO_NETO_TRABAJOS, estado.T_EQUILIBRIO)
 ```
 
@@ -62,7 +62,7 @@ Clasificación, listado de variables y relación eventos→estado: [Arquitectura
 
 - **Clientes:** Nuevos (con presupuesto [MKT](https://github.com/apacay/Simu-vAri/wiki/Glosario)) vs preexistentes ([PE](https://github.com/apacay/Simu-vAri/wiki/Glosario)). Proporción según scoring IA.
 - **Tipos:** [CE](https://github.com/apacay/Simu-vAri/wiki/Glosario) (asiduo / no asiduo) y [TA](https://github.com/apacay/Simu-vAri/wiki/Glosario).
-- **Pago:** Suscripción (10/mes, 15% descuento), Prepago (354.2, bloque global 460), Trabajo aislado (variable).
+- **Pago:** Suscripción (10/mes, 15% descuento), Prepago (354.2, bloque global 460), Trabajo aislado (variable). Clientes nuevos eligen suscripción vs prepago según `--ab-suscripcion` (default 50/50).
 - **Trabajos:** Apps/IT/Desarrollo con proporciones variables por día (Dirichlet α=26,21.5,2.5; media esperada ≈52%/43%/5%); duración y costo según [Configuración · Duraciones](https://github.com/apacay/Simu-vAri/wiki/Configuraci%C3%B3n#duraciones).
 - **Calendarización:** Probabilidad según horario y día; arrepentimiento 60%, falta 5%. Además, **calendarización por falta de disponibilidad** cuando no hay técnicos libres.
 - **Satisfacción:** Base + conectividad + inestabilidad (post-implementación) + calendarizado.

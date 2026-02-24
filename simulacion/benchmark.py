@@ -86,6 +86,7 @@ def ejecutar_benchmark(
     T_FINAL: int,
     N: int,
     M: float,
+    prob_suscripcion_nuevo: float = 0.50,
     verbose: bool = True,
     seed: Optional[int] = None,
 ) -> List["EstadoSimulacion"]:
@@ -103,7 +104,7 @@ def ejecutar_benchmark(
             random.seed(seed + i)
         if verbose:
             print(f"Ejecutando corrida {i + 1}/{n_runs}...")
-        est = ejecutar_simulacion(T_FINAL=T_FINAL, N=N, M=M, verbose=False)
+        est = ejecutar_simulacion(T_FINAL=T_FINAL, N=N, M=M, prob_suscripcion_nuevo=prob_suscripcion_nuevo, verbose=False)
         resultados.append(est)
     return resultados
 

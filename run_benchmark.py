@@ -50,6 +50,12 @@ def main():
         help="Presupuesto mensual de marketing (500-4500, default: 2000)",
     )
     parser.add_argument(
+        "--ab-suscripcion",
+        type=float,
+        default=0.50,
+        help="Probabilidad de que cliente nuevo elija suscripción vs prepago (0.0-1.0, default: 0.50)",
+    )
+    parser.add_argument(
         "--seed", "-s",
         type=int,
         default=None,
@@ -83,6 +89,7 @@ def main():
     T_FINAL = max(1, args.dias)
     N = max(1, args.implementaciones)
     M = max(500, min(4500, args.marketing))
+    AB_SUSCRIPCION = max(0.0, min(1.0, args.ab_suscripcion))
 
     from simulacion.benchmark import ejecutar_benchmark, agregar_metricas, generar_graficos_benchmark
 
@@ -90,7 +97,7 @@ def main():
     print("BENCHMARK DE SIMULACIÓN")
     print("=" * 60)
     print(f"Corridas: {n_runs}")
-    print(f"Parámetros: T_FINAL={T_FINAL}, N={N}, M={M}")
+    print(f"Parámetros: T_FINAL={T_FINAL}, N={N}, M={M}, AB_SUSCRIPCION={AB_SUSCRIPCION}")
     if args.seed is not None:
         print(f"Seed: {args.seed} (reproducible)")
     print()
@@ -100,6 +107,7 @@ def main():
         T_FINAL=T_FINAL,
         N=N,
         M=M,
+        prob_suscripcion_nuevo=AB_SUSCRIPCION,
         verbose=not args.silencioso,
         seed=args.seed,
     )
