@@ -41,16 +41,20 @@ def determinar_tipo_pago_paquete(est: EstadoSimulacion, es_asiduo: bool) -> str:
     return TIPO_PAGO_SUSCRIPCION if random.random() < prob_suscripcion else TIPO_PAGO_PREPAGO
 
 
-def _determinar_trabajo() -> Tuple[str, float, float]:
-    """Devuelve (tipo_trabajo, duracion, costo_por_unidad). Duración en minutos salvo Desarrollo en horas."""
+def _determinar_trabajo(prop_tipo: Tuple[float, float, float]) -> Tuple[str, float, float]:
+    """
+    Devuelve (tipo_trabajo, duracion, costo_por_unidad). Duración en minutos salvo Desarrollo en horas.
+    prop_tipo: (p_apps, p_it, p_dev) proporciones del día actual.
+    """
+    p_apps, p_it, p_dev = prop_tipo
     r = random.random()
-    if r < cfg.PROB_APPS:
+    if r < p_apps:
         duracion = cfg.normal_truncada(
             cfg.DURACION_APPS_MEDIA, cfg.DURACION_APPS_STD,
             0, cfg.DURACION_APPS_MAX_MINUTOS
         )
         return TRABAJO_APPS, duracion, cfg.COSTO_APPS_POR_MIN
-    if r < cfg.PROB_APPS + cfg.PROB_IT:
+    if r < p_apps + p_it:
         duracion = cfg.normal_truncada(
             cfg.DURACION_IT_MEDIA, cfg.DURACION_IT_STD,
             0, cfg.DURACION_IT_MAX_MINUTOS
@@ -201,7 +205,7 @@ def procesar_llegada_cliente(
         # Tipo de pago para nuevo se define en procesar_cobro (A/B 50/50)
 
     # ----- 2. DETERMINACIÓN TIPO DE TRABAJO -----
-    tipo_trabajo, duracion, costo_por_unidad = _determinar_trabajo()
+    tipo_trabajo, duracion, costo_por_unidad = _determinar_trabajo(est.prop_tipo_trabajo_dia)
     if tipo_trabajo == TRABAJO_DESARROLLO:
         creditos_trabajo = duracion * costo_por_unidad  # horas
         duracion_min = duracion * 60

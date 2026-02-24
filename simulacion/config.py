@@ -52,9 +52,13 @@ INTER_ARRIBO_MAX_MINUTOS = 120   # Máx 2h entre llegadas (horas valle)
 DURACION_APPS_MAX_MINUTOS = 120  # ~2h máximo trabajo APPS
 DURACION_IT_MAX_MINUTOS = 120    # ~2h máximo trabajo IT
 
-# --- Tipo de trabajo: probabilidades y distribuciones ---
-PROB_APPS = 0.52
-PROB_IT = 0.43   # 0.52 + 0.43 = 0.95, resto desarrollo
+# --- Tipo de trabajo: Dirichlet (variabilidad día a día) ---
+# Concentración: mayor = menos dispersión (más cerca de las medias)
+# Media esperada: APPS ≈ 52%, IT ≈ 43%, DEV ≈ 5%
+CONCENTRACION_TIPO_TRABAJO = 50
+DIRICHLET_ALPHA_APPS = 26.0
+DIRICHLET_ALPHA_IT = 21.5
+DIRICHLET_ALPHA_DEV = 2.5
 # Apps: Normal(15, 35) min truncada [0, 120], 1.0 crédito/min
 # IT: Normal(5, 40) min truncada [0, 120], 1.25 créditos/min
 # Desarrollo: Binomial negativa rango [2, 20] horas, 30 créditos/hora
@@ -237,3 +241,17 @@ def binomial_negativa(r: float, p: float, max_val: int = None) -> int:
             if fracasos >= max_val:
                 return max_val
     return min(fracasos, max_val)
+
+
+def dirichlet_3(alpha1: float, alpha2: float, alpha3: float) -> tuple:
+    """
+    Muestra de distribución Dirichlet(alpha1, alpha2, alpha3).
+    Devuelve (p1, p2, p3) donde p1 + p2 + p3 = 1.
+    Implementación sin numpy usando Gamma.
+    """
+    import random
+    g1 = random.gammavariate(max(0.01, alpha1), 1)
+    g2 = random.gammavariate(max(0.01, alpha2), 1)
+    g3 = random.gammavariate(max(0.01, alpha3), 1)
+    total = g1 + g2 + g3
+    return g1 / total, g2 / total, g3 / total

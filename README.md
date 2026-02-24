@@ -63,7 +63,7 @@ Clasificación, listado de variables y relación eventos→estado: [Arquitectura
 - **Clientes:** Nuevos (con presupuesto [MKT](https://github.com/apacay/Simu-vAri/wiki/Glosario)) vs preexistentes ([PE](https://github.com/apacay/Simu-vAri/wiki/Glosario)). Proporción según scoring IA.
 - **Tipos:** [CE](https://github.com/apacay/Simu-vAri/wiki/Glosario) (asiduo / no asiduo) y [TA](https://github.com/apacay/Simu-vAri/wiki/Glosario).
 - **Pago:** Suscripción (10/mes, 15% descuento), Prepago (354.2, bloque global 460), Trabajo aislado (variable).
-- **Trabajos:** Apps (52%), [IT](https://github.com/apacay/Simu-vAri/wiki/Glosario) (43%), Desarrollo (5%); duración y costo según [Configuración · Duraciones](https://github.com/apacay/Simu-vAri/wiki/Configuraci%C3%B3n#duraciones).
+- **Trabajos:** Apps/IT/Desarrollo con proporciones variables por día (Dirichlet α=26,21.5,2.5; media esperada ≈52%/43%/5%); duración y costo según [Configuración · Duraciones](https://github.com/apacay/Simu-vAri/wiki/Configuraci%C3%B3n#duraciones).
 - **Calendarización:** Probabilidad según horario y día; arrepentimiento 60%, falta 5%. Además, **calendarización por falta de disponibilidad** cuando no hay técnicos libres.
 - **Satisfacción:** Base + conectividad + inestabilidad (post-implementación) + calendarizado.
 - **Mensual:** Cobro suscripciones, no renovación de disconformes (80%), reponer [MKT](https://github.com/apacay/Simu-vAri/wiki/Glosario), pagar desarrollos.

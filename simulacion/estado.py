@@ -81,6 +81,9 @@ class EstadoSimulacion:
         }
         self.contrataciones_pendientes: List[Tuple[int, int, int]] = []  # (dia, n_devs, n_apps_it)
 
+        # --- Proporciones de tipo de trabajo del día actual (Dirichlet) ---
+        self.prop_tipo_trabajo_dia: Tuple[float, float, float] = (0.52, 0.43, 0.05)
+
         # --- Métricas ---
         self.T_EQUILIBRIO: Optional[int] = None
         self.MEJOR_TRIMESTRE = MejorTrimestre()

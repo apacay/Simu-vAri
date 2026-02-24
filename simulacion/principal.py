@@ -69,6 +69,15 @@ def reiniciar_tps_dia(est: EstadoSimulacion) -> None:
     est.TPS_AppsIT = [cfg.HIGH_VALUE] * est.Tecnicos_AppsIT
 
 
+def actualizar_proporciones_tipo_trabajo(est: EstadoSimulacion) -> None:
+    """Al inicio de cada día, sortea nuevas proporciones de tipo de trabajo (Dirichlet)."""
+    est.prop_tipo_trabajo_dia = cfg.dirichlet_3(
+        cfg.DIRICHLET_ALPHA_APPS,
+        cfg.DIRICHLET_ALPHA_IT,
+        cfg.DIRICHLET_ALPHA_DEV
+    )
+
+
 def incorporar_contrataciones(est: EstadoSimulacion) -> None:
     """Incorporar técnicos cuya fecha de llegada es hoy."""
     incorporados_dev = 0
@@ -290,6 +299,7 @@ def ejecutar_simulacion(T_FINAL: int, N: int, M: float, verbose: bool = True) ->
         # (d) Implementación + inestabilidad: verificar_implementacion
         # (e) Agotamiento prepago: llegada._renovar_bloque_prepago cuando creditos_prepago_global<=0
         est.T += 1
+        actualizar_proporciones_tipo_trabajo(est)
         reiniciar_tps_dia(est)
         incorporar_contrataciones(est)
         ejecutar_ciclo_contratacion(est)
