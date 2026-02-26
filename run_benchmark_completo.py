@@ -18,11 +18,14 @@ import argparse
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from datetime import datetime
 from multiprocessing import Pool
 
 sys.path.insert(0, ".")
+
+PROGRESO_INTERVALO_SEG = 60  # Imprimir progreso cada 60 segundos
 
 # Configuración del benchmark
 T_ANOS = 10
@@ -100,11 +103,12 @@ def main():
         configs = _configs_completos()
 
     print("=" * 70)
-    print("BENCHMARK COMPLETO - 10 AÑOS")
+    print("BENCHMARK COMPLETO - 10 ANOS")
     print("=" * 70)
     print(f"Corridas por config: {n_runs}")
     print(f"Total configuraciones: {len(configs)}")
     print(f"Simulaciones totales: {len(configs) * n_runs}")
+    print(f"Progreso cada {PROGRESO_INTERVALO_SEG} segundos.")
     print()
 
     from simulacion.benchmark import ejecutar_benchmark, agregar_metricas
@@ -116,6 +120,23 @@ def main():
         print("      Usa --workers 4 o --workers 8 para acelerar.")
         print()
 
+    def _callback_progreso_minuto(config_actual, total_configs, n_runs):
+        """Retorna callback que imprime progreso cada PROGRESO_INTERVALO_SEG segundos."""
+        last_print = [time.time()]
+
+        def cb(completadas, total):
+            ahora = time.time()
+            if ahora - last_print[0] >= PROGRESO_INTERVALO_SEG:
+                corridas_previas = (config_actual - 1) * n_runs
+                total_corridas = total_configs * n_runs
+                completadas_global = corridas_previas + completadas
+                pct = 100 * completadas_global / total_corridas
+                print(f"  [PROGRESO] Config {config_actual}/{total_configs} | "
+                      f"Corridas {completadas}/{total} ({100*completadas/total:.1f}%) | "
+                      f"Total ~{pct:.1f}% | {datetime.now().strftime('%H:%M:%S')}", flush=True)
+                last_print[0] = ahora
+        return cb
+
     resultados = []
     for i, cfg in enumerate(configs):
         print(f"\n[{i+1}/{len(configs)}] AB={cfg['ab_label']}, Releases={cfg['releases_label']}, MKT={cfg['marketing_label']}")
@@ -124,9 +145,24 @@ def main():
                 (j, DIAS_10_ANOS, cfg["N"], cfg["M"], cfg["ab"], args.seed + i * 10000)
                 for j in range(n_runs)
             ]
+            chunksz = max(1, n_runs // (n_workers * 4))
             with Pool(n_workers) as pool:
-                res = pool.map(_run_single, worker_args, chunksize=max(1, n_runs // (n_workers * 4)))
+                res = []
+                last_print = time.time()
+                for j, est in enumerate(pool.imap_unordered(_run_single, worker_args, chunksize=chunksz)):
+                    res.append(est)
+                    ahora = time.time()
+                    if ahora - last_print >= PROGRESO_INTERVALO_SEG:
+                        corridas_previas = i * n_runs
+                        total_corridas = len(configs) * n_runs
+                        completadas_global = corridas_previas + len(res)
+                        pct = 100 * completadas_global / total_corridas
+                        print(f"  [PROGRESO] Config {i+1}/{len(configs)} | "
+                              f"Corridas {len(res)}/{n_runs} ({100*len(res)/n_runs:.1f}%) | "
+                              f"Total ~{pct:.1f}% | {datetime.now().strftime('%H:%M:%S')}", flush=True)
+                        last_print = ahora
         else:
+            progress_cb = _callback_progreso_minuto(i + 1, len(configs), n_runs)
             res = ejecutar_benchmark(
                 n_runs=n_runs,
                 T_FINAL=DIAS_10_ANOS,
@@ -136,6 +172,7 @@ def main():
                 verbose=False,
                 seed=args.seed + i * 10000,
                 progress_interval=progress_int,
+                progress_callback=progress_cb,
             )
         agregado = agregar_metricas(res)
         agregado["config"] = cfg

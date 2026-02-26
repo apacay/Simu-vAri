@@ -131,11 +131,13 @@ def ejecutar_benchmark(
     verbose: bool = True,
     seed: Optional[int] = None,
     progress_interval: Optional[int] = None,
+    progress_callback: Optional[Any] = None,
 ) -> List["EstadoSimulacion"]:
     """
     Ejecuta n_runs simulaciones con los mismos parámetros.
     Si seed se proporciona, cada run usa seed + i para reproducibilidad.
     progress_interval: si se usa, imprime progreso cada N corridas (para n_runs grandes).
+    progress_callback: opcional, se llama cada corrida con (completadas, total).
     Retorna lista de EstadoSimulacion.
     """
     from .principal import ejecutar_simulacion
@@ -150,6 +152,8 @@ def ejecutar_benchmark(
             print(f"  Corrida {i + 1}/{n_runs}...")
         est = ejecutar_simulacion(T_FINAL=T_FINAL, N=N, M=M, prob_suscripcion_nuevo=prob_suscripcion_nuevo, verbose=False)
         resultados.append(est)
+        if progress_callback:
+            progress_callback(i + 1, n_runs)
     return resultados
 
 
