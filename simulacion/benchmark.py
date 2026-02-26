@@ -39,6 +39,17 @@ class MetricasResumen:
     pe_trabajo_aislado_final: int
     tecnicos_dev_final: int
     tecnicos_apps_it_final: int
+    # Métricas extendidas para conclusiones profundas
+    beneficio_prepago_final: float = 0.0
+    beneficio_suscripcion_final: float = 0.0
+    beneficio_trabajos_final: float = 0.0
+    beneficio_primeros_6_meses: Optional[float] = None
+    beneficio_primeros_12_meses: Optional[float] = None
+    prepago_primeros_6_meses: Optional[float] = None
+    suscripcion_primeros_6_meses: Optional[float] = None
+    satisfaccion_promedio_prepago: Optional[float] = None
+    satisfaccion_promedio_suscripcion: Optional[float] = None
+    satisfaccion_promedio_general: Optional[float] = None
     metricas_semanales: List[Dict[str, Any]] = field(default_factory=list)
 
 
@@ -48,6 +59,26 @@ def extraer_metricas(est: "EstadoSimulacion") -> MetricasResumen:
     meses_sim = max(1, est.T_FINAL / cfg.DIAS_POR_MES)
     beneficio_mensual_promedio = beneficio_final / meses_sim
     beneficio_anualizado = beneficio_final * (365 / est.T_FINAL) if est.T_FINAL > 0 else 0.0
+
+    # Entrada inicial (primeros 6 y 12 meses) y satisfacción
+    ms = est.metricas_semanales
+    benef_6m = benef_12m = prep_6m = susc_6m = None
+    if len(ms) >= 26:
+        benef_6m = ms[25]["beneficios"]["total_acumulado"]
+        prep_6m = ms[25]["beneficios"]["prepago"]
+        susc_6m = ms[25]["beneficios"]["suscripcion"]
+    if len(ms) >= 52:
+        benef_12m = ms[51]["beneficios"]["total_acumulado"]
+
+    sat_prep = sat_susc = sat_gen = None
+    if ms:
+        sat_prep_vals = [m["satisfaccion"]["prepago_satisfechos_pct"] for m in ms if m["satisfaccion"].get("prepago_satisfechos_pct") is not None]
+        sat_susc_vals = [m["satisfaccion"]["suscripcion_satisfechos_pct"] for m in ms if m["satisfaccion"].get("suscripcion_satisfechos_pct") is not None]
+        sat_gen_vals = [m["satisfaccion"]["general_satisfechos_pct"] for m in ms if m["satisfaccion"].get("general_satisfechos_pct") is not None]
+        sat_prep = sum(sat_prep_vals) / len(sat_prep_vals) if sat_prep_vals else None
+        sat_susc = sum(sat_susc_vals) / len(sat_susc_vals) if sat_susc_vals else None
+        sat_gen = sum(sat_gen_vals) / len(sat_gen_vals) if sat_gen_vals else None
+
     return MetricasResumen(
         beneficio_final=beneficio_final,
         beneficio_mensual_promedio=beneficio_mensual_promedio,
@@ -59,6 +90,16 @@ def extraer_metricas(est: "EstadoSimulacion") -> MetricasResumen:
         pe_trabajo_aislado_final=est.PE_Trabajo_Aislado,
         tecnicos_dev_final=est.Tecnicos_Dev,
         tecnicos_apps_it_final=est.Tecnicos_AppsIT,
+        beneficio_prepago_final=est.BENEFICIO_NETO_PREPAGO,
+        beneficio_suscripcion_final=est.BENEFICIO_NETO_SUSCRIPCION,
+        beneficio_trabajos_final=est.BENEFICIO_NETO_TRABAJOS,
+        beneficio_primeros_6_meses=benef_6m,
+        beneficio_primeros_12_meses=benef_12m,
+        prepago_primeros_6_meses=prep_6m,
+        suscripcion_primeros_6_meses=susc_6m,
+        satisfaccion_promedio_prepago=sat_prep,
+        satisfaccion_promedio_suscripcion=sat_susc,
+        satisfaccion_promedio_general=sat_gen,
         metricas_semanales=list(est.metricas_semanales),
     )
 
@@ -89,21 +130,24 @@ def ejecutar_benchmark(
     prob_suscripcion_nuevo: float = 0.50,
     verbose: bool = True,
     seed: Optional[int] = None,
+    progress_interval: Optional[int] = None,
 ) -> List["EstadoSimulacion"]:
     """
     Ejecuta n_runs simulaciones con los mismos parámetros.
     Si seed se proporciona, cada run usa seed + i para reproducibilidad.
+    progress_interval: si se usa, imprime progreso cada N corridas (para n_runs grandes).
     Retorna lista de EstadoSimulacion.
     """
     from .principal import ejecutar_simulacion
     import random
 
     resultados: List["EstadoSimulacion"] = []
+    interval = progress_interval if progress_interval else (1 if verbose else 0)
     for i in range(n_runs):
         if seed is not None:
             random.seed(seed + i)
-        if verbose:
-            print(f"Ejecutando corrida {i + 1}/{n_runs}...")
+        if interval and (i + 1) % interval == 0:
+            print(f"  Corrida {i + 1}/{n_runs}...")
         est = ejecutar_simulacion(T_FINAL=T_FINAL, N=N, M=M, prob_suscripcion_nuevo=prob_suscripcion_nuevo, verbose=False)
         resultados.append(est)
     return resultados
@@ -124,6 +168,13 @@ def agregar_metricas(resultados: List["EstadoSimulacion"]) -> Dict[str, Any]:
     mejores_trim = [m.mejor_trimestre_beneficio for m in metricas_runs if m.mejor_trimestre_beneficio is not None]
     suscripciones = [m.suscripciones_final for m in metricas_runs]
     prepagos = [m.prepagos_final for m in metricas_runs]
+    beneficios_6m = [m.beneficio_primeros_6_meses for m in metricas_runs if m.beneficio_primeros_6_meses is not None]
+    beneficios_12m = [m.beneficio_primeros_12_meses for m in metricas_runs if m.beneficio_primeros_12_meses is not None]
+    prepago_6m = [m.prepago_primeros_6_meses for m in metricas_runs if m.prepago_primeros_6_meses is not None]
+    suscripcion_6m = [m.suscripcion_primeros_6_meses for m in metricas_runs if m.suscripcion_primeros_6_meses is not None]
+    sat_prep = [m.satisfaccion_promedio_prepago for m in metricas_runs if m.satisfaccion_promedio_prepago is not None]
+    sat_susc = [m.satisfaccion_promedio_suscripcion for m in metricas_runs if m.satisfaccion_promedio_suscripcion is not None]
+    sat_gen = [m.satisfaccion_promedio_general for m in metricas_runs if m.satisfaccion_promedio_general is not None]
 
     # Series temporales agregadas (promedio por semana)
     n_semanas = 0
@@ -156,6 +207,13 @@ def agregar_metricas(resultados: List["EstadoSimulacion"]) -> Dict[str, Any]:
             "mejor_trimestre_beneficio": _estadisticas(mejores_trim) if mejores_trim else {},
             "suscripciones_final": _estadisticas(suscripciones),
             "prepagos_final": _estadisticas(prepagos),
+            "beneficio_primeros_6_meses": _estadisticas(beneficios_6m) if beneficios_6m else {},
+            "beneficio_primeros_12_meses": _estadisticas(beneficios_12m) if beneficios_12m else {},
+            "prepago_primeros_6_meses": _estadisticas(prepago_6m) if prepago_6m else {},
+            "suscripcion_primeros_6_meses": _estadisticas(suscripcion_6m) if suscripcion_6m else {},
+            "satisfaccion_promedio_prepago": _estadisticas(sat_prep) if sat_prep else {},
+            "satisfaccion_promedio_suscripcion": _estadisticas(sat_susc) if sat_susc else {},
+            "satisfaccion_promedio_general": _estadisticas(sat_gen) if sat_gen else {},
         },
         "series_agregadas": series_agregadas,
     }
