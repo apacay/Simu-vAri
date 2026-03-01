@@ -2,3 +2,6 @@
 # Python 3.8+
 # Dependencias para gráficos (opcional)
 matplotlib>=3.5.0
+# Presentación
+python-pptx>=0.6.21
+playwright>=1.40.0

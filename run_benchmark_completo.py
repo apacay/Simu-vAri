@@ -385,18 +385,149 @@ def generar_graficos_comparativos(resultados: list, output_dir: str) -> None:
     fig.savefig(os.path.join(output_dir, "comparacion_todas.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
-    # 5. Equilibrio por config
-    fig, ax = plt.subplots(figsize=(10, 6))
-    eq_labels = [f"{r['config']['ab_label']}\n{r['config']['releases_label']}\n{r['config']['marketing_label']}" for r in resultados]
-    eq_pct = [r["estadisticas"].get("equilibrio_porcentaje", 0) for r in resultados]
-    ax.barh(range(len(eq_labels)), eq_pct, color="green", alpha=0.6)
-    ax.set_yticks(range(len(eq_labels)))
-    ax.set_yticklabels(eq_labels, fontsize=8)
-    ax.set_xlabel("% corridas que alcanzaron equilibrio")
-    ax.set_title("Tasa de equilibrio por configuración")
-    ax.set_xlim(0, 105)
+    # 5. Equilibrio por config (heatmap en lugar de barras para evitar etiquetas ilegibles)
+    ab_labels = [x[1] for x in AB_CONFIGS]
+    rel_labels = [x[1] for x in RELEASES_CONFIGS]
+    mkt_labels = [x[1] for x in MARKETING_CONFIGS]
+    # Construir matriz: filas = AB x Releases, columnas = Marketing
+    eq_dict = {}
+    for r in resultados:
+        ab = r["config"]["ab_label"]
+        rel = r["config"]["releases_label"]
+        mkt = r["config"]["marketing_label"]
+        eq_dict[(ab, rel, mkt)] = r["estadisticas"].get("equilibrio_porcentaje", 0)
+    # Tres heatmaps: uno por presupuesto de marketing
+    fig, axes = plt.subplots(1, 3, figsize=(12, 5), sharey=True)
+    for idx, mkt in enumerate(mkt_labels):
+        ax = axes[idx]
+        mat = np.array([[eq_dict.get((ab, rel, mkt), 0) for rel in rel_labels] for ab in ab_labels])
+        im = ax.imshow(mat, cmap="RdYlGn", vmin=0, vmax=100, aspect="auto")
+        ax.set_xticks(range(len(rel_labels)))
+        ax.set_xticklabels(rel_labels)
+        ax.set_yticks(range(len(ab_labels)))
+        ax.set_yticklabels([f"AB {l}" for l in ab_labels])
+        ax.set_title(f"Marketing {mkt} créditos")
+        if idx == 0:
+            ax.set_ylabel("AB Testing")
+        ax.set_xlabel("Frecuencia releases")
+        for i in range(len(ab_labels)):
+            for j in range(len(rel_labels)):
+                ax.text(j, i, f"{mat[i, j]:.0f}%", ha="center", va="center", fontsize=11, color="black" if 40 < mat[i, j] < 85 else "white")
+    fig.suptitle("Tasa de equilibrio por configuración (% corridas que alcanzaron equilibrio)", fontsize=12, y=1.02)
+    fig.colorbar(im, ax=axes, shrink=0.6, label="% equilibrio")
     fig.tight_layout()
     fig.savefig(os.path.join(output_dir, "equilibrio_por_config.png"), dpi=150, bbox_inches="tight")
+    plt.close()
+
+    # 6. Satisfacción por tipo de release
+    rel_labels = [x[1] for x in RELEASES_CONFIGS]
+    sat_por_release = {r: [] for r in rel_labels}
+    for r in resultados:
+        sat = r["estadisticas"].get("satisfaccion_promedio_general", {}).get("media")
+        if sat is not None:
+            sat_por_release[r["config"]["releases_label"]].append(sat)
+    sat_medias = [np.mean(sat_por_release[r]) if sat_por_release[r] else 0 for r in rel_labels]
+    fig, ax = plt.subplots(figsize=(8, 5))
+    x = np.arange(len(rel_labels))
+    bars = ax.bar(x, sat_medias, color=["#e74c3c", "#3498db", "#2ecc71"], alpha=0.8)
+    ax.set_xticks(x)
+    ax.set_xticklabels(rel_labels)
+    ax.set_ylabel("Satisfacción general (%)")
+    ax.set_title("Satisfacción de usuarios por frecuencia de releases")
+    ax.set_ylim(0, 100)
+    for i, v in enumerate(sat_medias):
+        ax.text(i, v + 1, f"{v:.1f}%", ha="center", fontsize=10)
+    ax.grid(True, alpha=0.3, axis="y")
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_dir, "satisfaccion_por_release.png"), dpi=150, bbox_inches="tight")
+    plt.close()
+
+    # 7. Usuarios finales (prepagos + suscripciones) por config
+    def _usuarios(r):
+        prep = r["estadisticas"].get("prepagos_final", {}).get("media", 0)
+        susc = r["estadisticas"].get("suscripciones_final", {}).get("media", 0)
+        return prep + susc
+    usuarios = [_usuarios(r) for r in resultados]
+    config_labels = [f"{r['config']['ab_label']}\n{r['config']['releases_label']}\nMKT{r['config']['marketing_label']}" for r in resultados]
+    fig, ax = plt.subplots(figsize=(10, 7))
+    y_pos = np.arange(len(config_labels))
+    colors = ["#2ecc71" if u > 100 else "#f39c12" if u > 50 else "#e74c3c" for u in usuarios]
+    ax.barh(y_pos, usuarios, color=colors, alpha=0.8)
+    ax.set_yticks(y_pos)
+    ax.set_yticklabels(config_labels, fontsize=8)
+    ax.set_xlabel("Usuarios finales (prepagos + suscripciones)")
+    ax.set_title("Base de usuarios al final del periodo (10 años)")
+    ax.grid(True, alpha=0.3, axis="x")
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_dir, "usuarios_finales_por_config.png"), dpi=150, bbox_inches="tight")
+    plt.close()
+
+    # 8. Entrada inicial: prepago vs suscripción (primeros 6 meses) por AB
+    ab_labels = [x[1] for x in AB_CONFIGS]
+    prep_6m = []
+    susc_6m = []
+    for ab in ab_labels:
+        vals = [r for r in resultados if r["config"]["ab_label"] == ab]
+        preps = [r["estadisticas"].get("prepago_primeros_6_meses", {}).get("media") for r in vals]
+        suscs = [r["estadisticas"].get("suscripcion_primeros_6_meses", {}).get("media") for r in vals]
+        prep_6m.append(np.mean([p for p in preps if p is not None]) if preps else 0)
+        susc_6m.append(np.mean([s for s in suscs if s is not None]) if suscs else 0)
+    x = np.arange(len(ab_labels))
+    width = 0.35
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.bar(x - width/2, prep_6m, width, label="Prepago", color="#e74c3c", alpha=0.8)
+    ax.bar(x + width/2, susc_6m, width, label="Suscripción", color="#3498db", alpha=0.8)
+    ax.set_xticks(x)
+    ax.set_xticklabels([f"AB {l}" for l in ab_labels])
+    ax.set_ylabel("Créditos (primeros 6 meses)")
+    ax.set_title("Entrada inicial: Prepago vs Suscripción por AB Testing")
+    ax.legend()
+    ax.grid(True, alpha=0.3, axis="y")
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_dir, "entrada_inicial_prepago_vs_suscripcion.png"), dpi=150, bbox_inches="tight")
+    plt.close()
+
+    # 9. Día de equilibrio por release (solo configs que alcanzan equilibrio)
+    eq_dia_por_release = {r: [] for r in rel_labels}
+    for r in resultados:
+        eq_d = r["estadisticas"].get("equilibrio_dia", {})
+        if isinstance(eq_d, dict) and eq_d.get("media") is not None:
+            eq_dia_por_release[r["config"]["releases_label"]].append(eq_d["media"])
+    eq_medias = [np.mean(eq_dia_por_release[r]) if eq_dia_por_release[r] else np.nan for r in rel_labels]
+    valid = [i for i, v in enumerate(eq_medias) if not np.isnan(v)]
+    if valid:
+        fig, ax = plt.subplots(figsize=(8, 5))
+        x = [rel_labels[i] for i in valid]
+        y = [eq_medias[i] for i in valid]
+        ax.bar(x, y, color="steelblue", alpha=0.8)
+        ax.set_ylabel("Día medio de equilibrio")
+        ax.set_title("Tiempo al equilibrio por frecuencia de releases")
+        ax.grid(True, alpha=0.3, axis="y")
+        fig.tight_layout()
+        fig.savefig(os.path.join(output_dir, "dia_equilibrio_por_release.png"), dpi=150, bbox_inches="tight")
+        plt.close()
+
+    # 10. Mejor vs Peor: comparación
+    best = max(resultados, key=lambda r: r["estadisticas"].get("beneficio_final", {}).get("media", 0))
+    worst = min(resultados, key=lambda r: r["estadisticas"].get("beneficio_final", {}).get("media", float("inf")))
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+    for ax, r, titulo, color in [
+        (axes[0], best, "Mejor configuración", "#2ecc71"),
+        (axes[1], worst, "Peor configuración", "#e74c3c"),
+    ]:
+        c = r["config"]
+        st = r["estadisticas"]
+        metricas = ["Beneficio\n(M)", "Eq%", "Sat%", "Usuarios"]
+        bf = st.get("beneficio_final", {}).get("media", 0) / 1e6
+        eq = st.get("equilibrio_porcentaje", 0)
+        sat = st.get("satisfaccion_promedio_general", {}).get("media", 0) or 0
+        usr = _usuarios(r)
+        vals = [bf, eq, sat, usr / 10]  # usuarios/10 para escala
+        ax.bar(metricas, vals, color=color, alpha=0.8)
+        ax.set_title(f"{titulo}\n{c['ab_label']} / {c['releases_label']} / MKT{c['marketing_label']}")
+        ax.set_ylabel("Valor")
+    fig.tight_layout()
+    fig.savefig(os.path.join(output_dir, "mejor_vs_peor_config.png"), dpi=150, bbox_inches="tight")
     plt.close()
 
     print(f"Gráficos guardados en: {output_dir}/")
