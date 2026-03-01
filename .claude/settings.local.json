@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(python generar_presentacion_v3.py)",
       "Bash(python generar_pdf_v3.py)"
     ]
   }

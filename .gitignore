@@ -13,13 +13,11 @@ Simu-vAri.wiki/
 benchmark_10_anos/*
 !benchmark_10_anos/resultados_benchmark.json
 
-# Presentaciones output (excepto v3 share)
+# Presentaciones y paper (scripts y outputs - no parte del repo)
+generar_presentacion.py
+generar_paper.py
 presentacion_saas.html
-presentacion_saas_v2.html
-presentacion_saas_v2.pdf
 presentacion_saas_v3.html
-presentacion_saas_v4.html
-presentacion_saas_v4.pdf
+presentacion_saas_v3.pdf
 presentacion_simulacion_saas.pptx
-presentacion_v4_share/
 Paper_Simulacion_Plataforma_SaaS.docx
